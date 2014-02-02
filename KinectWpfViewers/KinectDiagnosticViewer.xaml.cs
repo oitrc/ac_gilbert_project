@@ -9,6 +9,55 @@ using System.Windows.Shapes;
 using Microsoft.Research.Kinect.Nui;
 using KinectNui = Microsoft.Research.Kinect.Nui;
 
+
+public class hand_raise
+{
+    public void clear()
+    {
+        m_detected = false;
+    }
+
+    public void detected()
+    {
+        m_detected = true;
+    }
+
+    /*******************************************************
+    Return the speed in meters per second
+    *******************************************************/
+    public double get_speed_mps()
+    {
+        return ( m_hand2 - m_hand1 ) / ( ( m_time_ms2 - m_time_ms1 ) / 1000 );
+    }
+
+    public bool is_raised()
+    {
+        return m_detected;
+    }
+
+    public void set1( double hand_y )
+    {
+        m_time_ms1 = DateTime.Now.TimeOfDay.TotalMilliseconds;
+        m_hand1 = hand_y;
+    }
+
+    public void set2( double hand_y )
+    {
+        m_time_ms2 = DateTime.Now.TimeOfDay.TotalMilliseconds;
+        m_hand2 = hand_y;
+    }
+    
+    /*******************************************************
+    TODO eventually ensure these are private
+    *******************************************************/
+    public bool         m_detected = false;
+    public double       m_time_ms1 = 0;
+    public double       m_time_ms2 = 0;
+    public double       m_hand1 = 0;
+    public double       m_hand2 = 0;
+};
+
+
 namespace Microsoft.Samples.Kinect.WpfViewers
 {
     /// <summary>
@@ -69,6 +118,9 @@ namespace Microsoft.Samples.Kinect.WpfViewers
             kinectName.Text = _Kinect.InstanceName;
             kinectStatus.Text = _Kinect.Status.ToString();
         }
+
+        hand_raise hr = new hand_raise();
+
         #endregion Public API
 
         #region Init
@@ -158,7 +210,26 @@ namespace Microsoft.Samples.Kinect.WpfViewers
         {
             if( handright.Position.Y > head.Position.Y )
             {
-                MessageBox.Show( "Your Hand Is Above Your Head" );
+                /*******************************************************
+                Hand is raised
+                *******************************************************/
+                if( hr.is_raised() )
+                {
+                    hr.set2( handright.Position.Y );
+                    MessageBox.Show( string.Format( "hand raise speed (meters per second): {0:0.000000}", hr.get_speed_mps() ) );
+                }
+                else
+                {
+                    hr.set1( handright.Position.Y );
+                    hr.detected();
+                }
+            }
+            else
+            {
+                /*******************************************************
+                Hand is not raised
+                *******************************************************/
+                hr.clear();
             }
         }
 
