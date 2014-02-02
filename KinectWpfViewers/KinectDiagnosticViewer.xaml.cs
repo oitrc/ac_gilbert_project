@@ -147,9 +147,19 @@ namespace Microsoft.Samples.Kinect.WpfViewers
                         jointLine.StrokeThickness = 6;
                         skeletonCanvas.Children.Add(jointLine);
                     }
+
+                    process_gesture( data.Joints[ JointID.Head ], data.Joints[ JointID.HandLeft ], data.Joints[ JointID.HandRight ] );
                 }
                 iSkeleton++;
             } // for each skeleton
+        }
+
+        private void process_gesture( Joint head, Joint handleft, Joint handright )
+        {
+            if( handright.Position.Y > head.Position.Y )
+            {
+                MessageBox.Show( "Your Hand Is Above Your Head" );
+            }
         }
 
         private Polyline getBodySegment(Microsoft.Research.Kinect.Nui.JointsCollection joints, Brush brush, params JointID[] ids)
