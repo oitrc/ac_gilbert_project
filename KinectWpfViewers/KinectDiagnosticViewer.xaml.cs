@@ -45,79 +45,18 @@ public class hand_raise
          *  12/4    -> 3 frames for full hand raise
         ------------------------------------------------------*/
         m_num_frames = 3;
-        m_time_ms = new double[ m_num_frames ];
-        m_hand_y = new double[ m_num_frames ];
-        m_speed_mps = new double[ m_num_frames - 1 ];
+        m_time_ms    = new double[ m_num_frames ];
+        m_hand_y     = new double[ m_num_frames ];
+        m_speed_mps  = new double[ m_num_frames - 1 ];
         this.reset();
-    }
-
-    public void reset()
-    {
-        m_frame_idx = 0;
-    }
-
-    /*------------------------------------------------------
-    Return the total average speed in meters per second
-    ------------------------------------------------------*/
-    public double get_speed_mps()
-    {
-        double speed_mps_avg = 0;
-
-        /*------------------------------------------------------
-        Calculate speeds for each interval
-        ------------------------------------------------------*/
-        for( int i = 0; i < m_speed_mps.Length; i++ )
-        {
-            m_speed_mps[ i ] = this.get_speed_mps( i );
-        }
-
-        /*------------------------------------------------------
-        Calculate the average speed of the intervals
-        ------------------------------------------------------*/
-        for( int i = 0; i < m_speed_mps.Length; i++ )
-        {
-            speed_mps_avg += m_speed_mps[ i ];
-        }
-        speed_mps_avg /= m_speed_mps.Length;
-
-        return speed_mps_avg;
-    }
-
-    /*------------------------------------------------------
-    Return the speed in meters per second between two data
-    points given their indices, where idx1 < idx2
-    ------------------------------------------------------*/
-    public double get_speed_mps( int idx1, int idx2 )
-    {
-        return ( m_hand_y[ idx2 ] - m_hand_y[ idx1 ] ) / ( ( m_time_ms[ idx2 ] - m_time_ms[ idx1 ] ) / 1000 );
-    }
-
-    /*------------------------------------------------------
-    Return the speed in meters per second between two 
-    consecutive data points given the first index
-    ------------------------------------------------------*/
-    public double get_speed_mps( int idx )
-    {
-        return this.get_speed_mps( idx, idx + 1 );
-    }
-
-    public bool in_progress()
-    {
-        return ( m_frame_idx < m_num_frames );
-    }
-
-    public void set( double hand_y, double timestamp_ms )
-    {
-        m_time_ms[ m_frame_idx ] = timestamp_ms;
-        m_hand_y[ m_frame_idx ] = hand_y;
-        m_frame_idx++;
     }
 
     public void process_frame( SkeletonFrame skeleton_frame )
     {
-        float head_y;
-        float handright_y;
-        double timestamp_ms;
+        float           head_y;
+        float           handright_y;
+        double          timestamp_ms;
+        SkeletonData    skeleton;
 
         if( skeleton_frame == null )
         {
@@ -126,11 +65,11 @@ public class hand_raise
 
         /*------------------------------------------------------
         Select the closest skeleton to track
-        ------------------------------------------------------*/       
-        SkeletonData data = (from s in skeleton_frame.Skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s).FirstOrDefault();
+        ------------------------------------------------------*/
+        skeleton = ( from s in skeleton_frame.Skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s ).FirstOrDefault();
 
-        head_y = data.Joints[ JointID.Head ].Position.Y;
-        handright_y = data.Joints[ JointID.HandRight ].Position.Y;
+        head_y       = skeleton.Joints[ JointID.Head ].Position.Y;
+        handright_y  = skeleton.Joints[ JointID.HandRight ].Position.Y;
         timestamp_ms = skeleton_frame.TimeStamp;
 
         if( handright_y > head_y )
@@ -155,15 +94,66 @@ public class hand_raise
             }
         }
     }
-    
+
+    private void reset()
+    {
+        m_frame_idx = 0;
+    }
+
     /*------------------------------------------------------
-    TODO eventually ensure these are private
+    Return the total average speed in meters per second
     ------------------------------------------------------*/
-    public int          m_num_frames;
-    public int          m_frame_idx;
-    public double[]     m_time_ms;
-    public double[]     m_hand_y;
-    public double[]     m_speed_mps;
+    private double get_speed_mps()
+    {
+        /*------------------------------------------------------
+        Calculate speeds for each interval
+        ------------------------------------------------------*/
+        for( int i = 0; i < m_speed_mps.Length; i++ )
+        {
+            m_speed_mps[ i ] = this.get_speed_mps( i );
+        }
+
+        /*------------------------------------------------------
+        Return the average speed of the intervals
+        ------------------------------------------------------*/
+        return m_speed_mps.Average();
+    }
+
+    /*------------------------------------------------------
+    Return the speed in meters per second between two data
+    points given their indices, where idx1 < idx2
+    ------------------------------------------------------*/
+    private double get_speed_mps( int idx1, int idx2 )
+    {
+        return ( m_hand_y[ idx2 ] - m_hand_y[ idx1 ] ) / ( ( m_time_ms[ idx2 ] - m_time_ms[ idx1 ] ) / 1000 );
+    }
+
+    /*------------------------------------------------------
+    Return the speed in meters per second between two 
+    consecutive data points given the first index
+    ------------------------------------------------------*/
+    private double get_speed_mps( int idx )
+    {
+        return this.get_speed_mps( idx, idx + 1 );
+    }
+
+    private bool in_progress()
+    {
+        return ( m_frame_idx < m_num_frames );
+    }
+
+    private void set( double hand_y, double timestamp_ms )
+    {
+        m_time_ms[ m_frame_idx ] = timestamp_ms;
+        m_hand_y[ m_frame_idx ]  = hand_y;
+        m_frame_idx++;
+    }
+
+    private int         m_num_frames;
+    private int         m_frame_idx;
+    private double[]    m_time_ms;
+    private double[]    m_hand_y;
+    private double[]    m_speed_mps;
 };
 
 
