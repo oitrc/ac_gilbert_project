@@ -12,11 +12,21 @@ using KinectNui = Microsoft.Research.Kinect.Nui;
 
 public class hand_raise
 {
-    public void clear()
+    public hand_raise(  )
     {
-        m_detected = false;
+        m_num_frames = 5;
+        m_time_ms = new double[ m_num_frames ];
+        m_hand_y = new double[ m_num_frames ];
+        reset();
     }
 
+    public void reset()
+    {
+        m_frame_idx = 0;
+        m_detected = false;     // TODO remove this
+    }
+
+    // TODO remove this
     public void detected()
     {
         m_detected = true;
@@ -27,34 +37,35 @@ public class hand_raise
     ------------------------------------------------------*/
     public double get_speed_mps()
     {
-        return ( m_hand_y2 - m_hand_y1 ) / ( ( m_time_ms2 - m_time_ms1 ) / 1000 );
+        return ( m_hand_y[ m_num_frames - 1 ] - m_hand_y[ 0 ] ) / ( ( m_time_ms[ m_num_frames - 1 ] - m_time_ms[ 0 ] ) / 1000 );
     }
 
+    // TODO remove this
     public bool is_raised()
     {
         return m_detected;
     }
 
-    public void set1( double hand_y, double timestamp_ms )
+    public bool in_progress()
     {
-        m_time_ms1 = timestamp_ms;
-        m_hand_y1 = hand_y;
+        return ( m_frame_idx < m_num_frames );
     }
 
-    public void set2( double hand_y, double timestamp_ms )
+    public void set( double hand_y, double timestamp_ms )
     {
-        m_time_ms2 = timestamp_ms;
-        m_hand_y2 = hand_y;
+        m_time_ms[ m_frame_idx ] = timestamp_ms;
+        m_hand_y[ m_frame_idx ] = hand_y;
+        m_frame_idx++;
     }
     
     /*------------------------------------------------------
     TODO eventually ensure these are private
     ------------------------------------------------------*/
-    public bool         m_detected = false;
-    public double       m_time_ms1 = 0;
-    public double       m_time_ms2 = 0;
-    public double       m_hand_y1 = 0;
-    public double       m_hand_y2 = 0;
+    public int          m_num_frames;
+    public int          m_frame_idx;
+    public bool         m_detected;     // TODO remove this
+    public double[]     m_time_ms;
+    public double[]     m_hand_y;
 };
 
 
@@ -213,23 +224,21 @@ namespace Microsoft.Samples.Kinect.WpfViewers
                 /*------------------------------------------------------
                 Hand is raised
                 ------------------------------------------------------*/
-                if( hr.is_raised() )
+                if( hr.in_progress() )
                 {
-                    hr.set2( handright_y, timestamp_ms );
-                    MessageBox.Show( string.Format( "hand raise speed (meters per second): {0:0.000000}", hr.get_speed_mps() ) );
+                    /*------------------------------------------------------
+                    Collect hand position samples
+                    ------------------------------------------------------*/
+                    hr.set( handright_y, timestamp_ms );
                 }
                 else
                 {
-                    hr.set1( handright_y, timestamp_ms );
-                    hr.detected();
+                    /*------------------------------------------------------
+                    Handraise is complete
+                    ------------------------------------------------------*/
+                    MessageBox.Show( string.Format( "hand raise speed (meters per second): {0:0.000000}", hr.get_speed_mps() ) );
+                    hr.reset();
                 }
-            }
-            else
-            {
-                /*------------------------------------------------------
-                Hand is not raised
-                ------------------------------------------------------*/
-                hr.clear();
             }
         }
 
