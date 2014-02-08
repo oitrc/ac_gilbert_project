@@ -22,12 +22,12 @@ public class hand_raise
         m_detected = true;
     }
 
-    /*******************************************************
+    /*------------------------------------------------------
     Return the speed in meters per second
-    *******************************************************/
+    ------------------------------------------------------*/
     public double get_speed_mps()
     {
-        return ( m_hand2 - m_hand1 ) / ( ( m_time_ms2 - m_time_ms1 ) / 1000 );
+        return ( m_hand_y2 - m_hand_y1 ) / ( ( m_time_ms2 - m_time_ms1 ) / 1000 );
     }
 
     public bool is_raised()
@@ -35,26 +35,26 @@ public class hand_raise
         return m_detected;
     }
 
-    public void set1( double hand_y )
+    public void set1( double hand_y, double timestamp_ms )
     {
-        m_time_ms1 = DateTime.Now.TimeOfDay.TotalMilliseconds;
-        m_hand1 = hand_y;
+        m_time_ms1 = timestamp_ms;
+        m_hand_y1 = hand_y;
     }
 
-    public void set2( double hand_y )
+    public void set2( double hand_y, double timestamp_ms )
     {
-        m_time_ms2 = DateTime.Now.TimeOfDay.TotalMilliseconds;
-        m_hand2 = hand_y;
+        m_time_ms2 = timestamp_ms;
+        m_hand_y2 = hand_y;
     }
     
-    /*******************************************************
+    /*------------------------------------------------------
     TODO eventually ensure these are private
-    *******************************************************/
+    ------------------------------------------------------*/
     public bool         m_detected = false;
     public double       m_time_ms1 = 0;
     public double       m_time_ms2 = 0;
-    public double       m_hand1 = 0;
-    public double       m_hand2 = 0;
+    public double       m_hand_y1 = 0;
+    public double       m_hand_y2 = 0;
 };
 
 
@@ -200,35 +200,35 @@ namespace Microsoft.Samples.Kinect.WpfViewers
                         skeletonCanvas.Children.Add(jointLine);
                     }
 
-                    process_gesture( data.Joints[ JointID.Head ], data.Joints[ JointID.HandLeft ], data.Joints[ JointID.HandRight ] );
+                    process_gesture( data.Joints[ JointID.Head ].Position.Y, data.Joints[ JointID.HandRight ].Position.Y, skeletonFrame.TimeStamp );
                 }
                 iSkeleton++;
             } // for each skeleton
         }
 
-        private void process_gesture( Joint head, Joint handleft, Joint handright )
+        private void process_gesture( float head_y, float handright_y, double timestamp_ms )
         {
-            if( handright.Position.Y > head.Position.Y )
+            if( handright_y > head_y )
             {
-                /*******************************************************
+                /*------------------------------------------------------
                 Hand is raised
-                *******************************************************/
+                ------------------------------------------------------*/
                 if( hr.is_raised() )
                 {
-                    hr.set2( handright.Position.Y );
+                    hr.set2( handright_y, timestamp_ms );
                     MessageBox.Show( string.Format( "hand raise speed (meters per second): {0:0.000000}", hr.get_speed_mps() ) );
                 }
                 else
                 {
-                    hr.set1( handright.Position.Y );
+                    hr.set1( handright_y, timestamp_ms );
                     hr.detected();
                 }
             }
             else
             {
-                /*******************************************************
+                /*------------------------------------------------------
                 Hand is not raised
-                *******************************************************/
+                ------------------------------------------------------*/
                 hr.clear();
             }
         }
