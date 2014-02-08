@@ -14,36 +14,91 @@ public class hand_raise
 {
     public hand_raise(  )
     {
-        m_num_frames = 5;
+        /*------------------------------------------------------
+        Statically set the number of frames to use which really
+        depends on the following factors:
+         *  camera framerate (in frames per second)
+         *  maximum hand raise speed
+         *  hand raise length (between centers of head/hand)
+        
+        Notes: 
+         *  The main purpose of taking multiple samples is to
+            reduce error in the hand Y position by averaging the
+            speed over the course of the hand raise.  The more
+            samples the more accurate the speed measurement.
+         *  The main problem with the approach of using a set 
+            number of frames is if the hand raise is very fast
+            we will average in the time it reaches the top and
+            stops, so it may be necessary to profile the hand
+            raise in order to only average the appropriate
+            number of frames.
+        
+        Calculation for why 3 is a good number of frames for
+        children.
+        Assumptions:
+         *  camera framerate of 30 fps
+         *  maximum hand raise speed of 3 m/s
+                -> 118 inches per second
+         *  hand raise length is about 12 inches
+        Calculation:
+         *  118/30  -> 4 inches per frame at max speed
+         *  12/4    -> 3 frames for full hand raise
+        ------------------------------------------------------*/
+        m_num_frames = 3;
         m_time_ms = new double[ m_num_frames ];
         m_hand_y = new double[ m_num_frames ];
+        m_speed_mps = new double[ m_num_frames - 1 ];
         reset();
     }
 
     public void reset()
     {
         m_frame_idx = 0;
-        m_detected = false;     // TODO remove this
-    }
-
-    // TODO remove this
-    public void detected()
-    {
-        m_detected = true;
     }
 
     /*------------------------------------------------------
-    Return the speed in meters per second
+    Return the total average speed in meters per second
     ------------------------------------------------------*/
     public double get_speed_mps()
     {
-        return ( m_hand_y[ m_num_frames - 1 ] - m_hand_y[ 0 ] ) / ( ( m_time_ms[ m_num_frames - 1 ] - m_time_ms[ 0 ] ) / 1000 );
+        double speed_mps_avg = 0;
+
+        /*------------------------------------------------------
+        Calculate speeds for each interval
+        ------------------------------------------------------*/
+        for( int i = 0; i < m_speed_mps.Length; i++ )
+        {
+            m_speed_mps[ i ] = get_speed_mps( i );
+        }
+
+        /*------------------------------------------------------
+        Calculate the average speed of the intervals
+        ------------------------------------------------------*/
+        for( int i = 0; i < m_speed_mps.Length; i++ )
+        {
+            speed_mps_avg += m_speed_mps[ i ];
+        }
+        speed_mps_avg /= m_speed_mps.Length;
+
+        return speed_mps_avg;
     }
 
-    // TODO remove this
-    public bool is_raised()
+    /*------------------------------------------------------
+    Return the speed in meters per second between two data
+    points given their indices, where idx1 < idx2
+    ------------------------------------------------------*/
+    public double get_speed_mps( int idx1, int idx2 )
     {
-        return m_detected;
+        return ( m_hand_y[ idx2 ] - m_hand_y[ idx1 ] ) / ( ( m_time_ms[ idx2 ] - m_time_ms[ idx1 ] ) / 1000 );
+    }
+
+    /*------------------------------------------------------
+    Return the speed in meters per second between two 
+    consecutive data points given the first index
+    ------------------------------------------------------*/
+    public double get_speed_mps( int idx )
+    {
+        return get_speed_mps( idx, idx + 1 );
     }
 
     public bool in_progress()
@@ -63,9 +118,9 @@ public class hand_raise
     ------------------------------------------------------*/
     public int          m_num_frames;
     public int          m_frame_idx;
-    public bool         m_detected;     // TODO remove this
     public double[]     m_time_ms;
     public double[]     m_hand_y;
+    public double[]     m_speed_mps;
 };
 
 
