@@ -12,7 +12,7 @@ using KinectNui = Microsoft.Research.Kinect.Nui;
 
 public class hand_raise
 {
-    public hand_raise(  )
+    public hand_raise()
     {
         /*------------------------------------------------------
         Statically set the number of frames to use which really
@@ -48,7 +48,7 @@ public class hand_raise
         m_time_ms = new double[ m_num_frames ];
         m_hand_y = new double[ m_num_frames ];
         m_speed_mps = new double[ m_num_frames - 1 ];
-        reset();
+        this.reset();
     }
 
     public void reset()
@@ -68,7 +68,7 @@ public class hand_raise
         ------------------------------------------------------*/
         for( int i = 0; i < m_speed_mps.Length; i++ )
         {
-            m_speed_mps[ i ] = get_speed_mps( i );
+            m_speed_mps[ i ] = this.get_speed_mps( i );
         }
 
         /*------------------------------------------------------
@@ -98,7 +98,7 @@ public class hand_raise
     ------------------------------------------------------*/
     public double get_speed_mps( int idx )
     {
-        return get_speed_mps( idx, idx + 1 );
+        return this.get_speed_mps( idx, idx + 1 );
     }
 
     public bool in_progress()
@@ -111,6 +111,49 @@ public class hand_raise
         m_time_ms[ m_frame_idx ] = timestamp_ms;
         m_hand_y[ m_frame_idx ] = hand_y;
         m_frame_idx++;
+    }
+
+    public void process_frame( SkeletonFrame skeleton_frame )
+    {
+        float head_y;
+        float handright_y;
+        double timestamp_ms;
+
+        if( skeleton_frame == null )
+        {
+            return;
+        }
+
+        /*------------------------------------------------------
+        Select the closest skeleton to track
+        ------------------------------------------------------*/       
+        SkeletonData data = (from s in skeleton_frame.Skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s).FirstOrDefault();
+
+        head_y = data.Joints[ JointID.Head ].Position.Y;
+        handright_y = data.Joints[ JointID.HandRight ].Position.Y;
+        timestamp_ms = skeleton_frame.TimeStamp;
+
+        if( handright_y > head_y )
+        {
+            /*------------------------------------------------------
+            Hand is raised
+            ------------------------------------------------------*/
+            if( this.in_progress() )
+            {
+                /*------------------------------------------------------
+                Collect hand position samples
+                ------------------------------------------------------*/
+                this.set( handright_y, timestamp_ms );
+            }
+            else
+            {
+                /*------------------------------------------------------
+                Handraise is complete
+                ------------------------------------------------------*/
+                MessageBox.Show( string.Format( "hand raise speed (meters per second): {0:0.000000}", this.get_speed_mps() ) );
+                this.reset();
+            }
+        }
     }
     
     /*------------------------------------------------------
@@ -265,36 +308,11 @@ namespace Microsoft.Samples.Kinect.WpfViewers
                         jointLine.StrokeThickness = 6;
                         skeletonCanvas.Children.Add(jointLine);
                     }
-
-                    process_gesture( data.Joints[ JointID.Head ].Position.Y, data.Joints[ JointID.HandRight ].Position.Y, skeletonFrame.TimeStamp );
                 }
                 iSkeleton++;
             } // for each skeleton
-        }
 
-        private void process_gesture( float head_y, float handright_y, double timestamp_ms )
-        {
-            if( handright_y > head_y )
-            {
-                /*------------------------------------------------------
-                Hand is raised
-                ------------------------------------------------------*/
-                if( hr.in_progress() )
-                {
-                    /*------------------------------------------------------
-                    Collect hand position samples
-                    ------------------------------------------------------*/
-                    hr.set( handright_y, timestamp_ms );
-                }
-                else
-                {
-                    /*------------------------------------------------------
-                    Handraise is complete
-                    ------------------------------------------------------*/
-                    MessageBox.Show( string.Format( "hand raise speed (meters per second): {0:0.000000}", hr.get_speed_mps() ) );
-                    hr.reset();
-                }
-            }
+            hr.process_frame( skeletonFrame );
         }
 
         private Polyline getBodySegment(Microsoft.Research.Kinect.Nui.JointsCollection joints, Brush brush, params JointID[] ids)
