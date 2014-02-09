@@ -53,10 +53,14 @@ public class hand_raise
 
     public void process_frame( SkeletonFrame skeleton_frame )
     {
-        float           head_y;
-        float           handright_y;
+        /*------------------------------------------------------
+        Local variables
+        ------------------------------------------------------*/
+        float           head_y;     /* head y position (meters)     */
+        float           handright_y;/* right hand y pos (meters)    */
         double          timestamp_ms;
-        SkeletonData    skeleton;
+                                    /* timestamp (milliseconds)     */
+        SkeletonData    skeleton;   /* skeleton data of tracked user*/
 
         if( skeleton_frame == null )
         {
@@ -67,6 +71,11 @@ public class hand_raise
         Select the closest skeleton to track
         ------------------------------------------------------*/
         skeleton = ( from s in skeleton_frame.Skeletons where s.TrackingState == SkeletonTrackingState.Tracked select s ).FirstOrDefault();
+
+        if( skeleton == null )
+        {
+            return;
+        }
 
         head_y       = skeleton.Joints[ JointID.Head ].Position.Y;
         handright_y  = skeleton.Joints[ JointID.HandRight ].Position.Y;
@@ -139,7 +148,7 @@ public class hand_raise
 
     private bool in_progress()
     {
-        return ( m_frame_idx < m_num_frames );
+        return m_frame_idx < m_num_frames;
     }
 
     private void set( double hand_y, double timestamp_ms )
@@ -150,10 +159,15 @@ public class hand_raise
     }
 
     private int         m_num_frames;
-    private int         m_frame_idx;
-    private double[]    m_time_ms;
-    private double[]    m_hand_y;
-    private double[]    m_speed_mps;
+                                    /* number of frames to capture
+                                       for each hand raise event    */
+    private int         m_frame_idx;/* frame index for successive 
+                                       captures                     */
+    private double[]    m_time_ms;  /* timestamp array
+                                       (milliseconds)               */
+    private double[]    m_hand_y;   /* right hand y position array
+                                       (meters)                     */
+    private double[]    m_speed_mps;/* speed array (meters/second)  */
 };
 
 
