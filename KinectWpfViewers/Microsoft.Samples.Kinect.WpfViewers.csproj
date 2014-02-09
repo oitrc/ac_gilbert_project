@@ -50,6 +50,7 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="hand_raise.cs" />
     <Compile Include="InteropBitmapHelper.cs" />
     <Compile Include="KinectDepthViewer.xaml.cs">
       <DependentUpon>KinectDepthViewer.xaml</DependentUpon>
